@@ -8,6 +8,10 @@ let package = Package(
     platforms: [
         .iOS(.v14) // Minimum iOS version required
     ],
+    platforms: [
+        .iOS(.v14) // Minimum iOS version required
+    ],
+    
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
@@ -27,7 +31,7 @@ let package = Package(
             dependencies: [
                 .product(name: "GoogleMobileAds", package: "swift-package-manager-google-mobile-ads")
             ]
-        )
+        ),
 
     ]
 )
