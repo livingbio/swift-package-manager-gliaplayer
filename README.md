@@ -37,36 +37,26 @@ import GliaPlayer
 
 struct ContentView: View {
     var body: some View {
-        // 1. ZStack is the equivalent of the outer 'Box' in Compose
         ZStack(alignment: .bottomTrailing) {
-            
-            // 2. The scrolling background content
+            // The scrolling background content
             ScrollView {
                 VStack(spacing: 16) {
-                    ForEach(0..<100, id: \.self) { i in
-                        if (i==1){
-                            GliaPlayerView(slotKey: "gliacloud_app_test")
-                                .frame(width: 320, height: 240)
-                        }
-                            
-                            else{
-                            Rectangle()
-                                .fill(Color(
-                                    red: Double.random(in: 0...1),
-                                    green: Double.random(in: 0...1),
-                                    blue: Double.random(in: 0...1)
-                                ))
-                                .frame(height: 320)
-                                .frame(maxWidth: .infinity)
-                        }
-                        
+                    ForEach(0..<100, id: \.self) { _ in
+                        Rectangle()
+                            .fill(Color(
+                                red: Double.random(in: 0...1),
+                                green: Double.random(in: 0...1),
+                                blue: Double.random(in: 0...1)
+                            ))
+                            .frame(height: 320)
+                            .frame(maxWidth: .infinity)
                     }
                 }
             }
             
-            // 3. The floating player (AndroidView equivalent)
-            // We set a fixed frame just like your .width(480.dp).height(320.dp)
-            
+            // The floating player
+            GliaPlayerView(slotKey: "gliacloud_app_test")
+                .frame(width: 320, height: 240)
         }
         .edgesIgnoringSafeArea(.all)
     }
