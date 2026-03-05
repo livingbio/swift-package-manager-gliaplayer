@@ -31,6 +31,8 @@ In `ios/Runner/Info.plist`, add this config:
 
 ## Step 3: Usage
 
+The sample code below shows how to add GliaPlayerView to the UI layout so that it always sticks to the bottom right corner of the screen.
+
 ```swift
 import SwiftUI
 import GliaPlayer
