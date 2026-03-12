@@ -125,7 +125,7 @@ class GliaPlayerUIViewController: UIViewController, WKNavigationDelegate, WKUIDe
         }
         """
         
-        webView.evaluateJavaScript(jsCode, completionHandler: nil)
+       // webView.evaluateJavaScript(jsCode, completionHandler: nil)
     }
     
     func didHandleClickBehavior(
