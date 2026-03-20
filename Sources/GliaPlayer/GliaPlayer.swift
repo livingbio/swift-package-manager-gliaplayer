@@ -2,8 +2,9 @@ import SwiftUI
 import GoogleMobileAds
 import SafariServices
 import WebKit
+import AVFoundation
 
-class GliaPlayerUIViewController: UIViewController, WKNavigationDelegate, WKUIDelegate {
+class GliaPlayerUIViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
     var webView: WKWebView!
     private var isMobileAdsStartCalled = false
     private let slotKey: String
@@ -18,18 +19,94 @@ class GliaPlayerUIViewController: UIViewController, WKNavigationDelegate, WKUIDe
         fatalError("init(coder:) has not been implemented")
     }
     
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+        webView?.configuration.userContentController.removeScriptMessageHandler(forName: "audioObserver")
+    }
+    
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            if message.name == "audioObserver", let state = message.body as? String {
+                let audioSession = AVAudioSession.sharedInstance()
+                
+                if state == "muted" {
+                    do {
+                        try audioSession.setCategory(.ambient, options: [.mixWithOthers])
+                        try audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+                    } catch {
+                        print("Can't start AVAudioSession: : \(error.localizedDescription)")
+                    }
+                } else if state == "unmuted" {
+                    do {
+                        try audioSession.setCategory(.playback)
+                        try audioSession.setActive(true)
+                    } catch {
+                        print("Can't start AVAudioSession: \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
+    
+    @objc func handleAppResignActive() {
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setCategory(.ambient, options: [.mixWithOthers])
+            try audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+        } catch {
+            print("Can't start AVAudioSession: \(error.localizedDescription)")
+        }
+    }
+
+    @objc func handleAppBecomeActive() {
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setCategory(.playback)
+            try audioSession.setActive(true)
+        } catch {
+            print("Can't start AVAudioSession: \(error.localizedDescription)")
+        }
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
         startGoogleMobileAdsSDK()
+        
+        NotificationCenter.default.addObserver(self,
+            selector: #selector(handleAppResignActive),
+            name: UIApplication.willResignActiveNotification,
+            object: nil)
+
+        NotificationCenter.default.addObserver(self,
+            selector: #selector(handleAppBecomeActive),
+            name: UIApplication.didBecomeActiveNotification,
+            object: nil)
 
         let webViewConfiguration = WKWebViewConfiguration()
         webViewConfiguration.allowsInlineMediaPlayback = true
         webViewConfiguration.mediaTypesRequiringUserActionForPlayback = []
+        
+        let contentController = WKUserContentController()
+        let js = """
+                document.addEventListener('volumechange', function(event) {
+                    var element = event.target;
+                    if (element && element.tagName === 'VIDEO') {
+                        if (element.muted || element.volume === 0) {
+                            window.webkit.messageHandlers.audioObserver.postMessage('muted');
+                        } else {
+                            window.webkit.messageHandlers.audioObserver.postMessage('unmuted');
+                        }
+                    }
+                }, true);
+                """
+        
+        let script = WKUserScript(source: js, injectionTime: .atDocumentEnd, forMainFrameOnly: false)
+        contentController.addUserScript(script)
+        contentController.add(self, name: "audioObserver")
+        webViewConfiguration.userContentController = contentController
 
         webView = WKWebView(frame: view.bounds, configuration: webViewConfiguration)
         
-        // RECOMMENDATION: Add this line so the WebView resizes with the screen (e.g. rotation)
+        // The WebView resizes with the screen (e.g. rotation)
         webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         
         view.addSubview(webView)
@@ -37,7 +114,7 @@ class GliaPlayerUIViewController: UIViewController, WKNavigationDelegate, WKUIDe
         MobileAds.shared.register(webView)
         // Set the WKUIDelegate on your WKWebView instance.
         webView.uiDelegate = self;
-        // 2. Set the WKNavigationDelegate on your WKWebView instance.
+        // Set the WKNavigationDelegate on your WKWebView instance.
         webView.navigationDelegate = self
          
         guard let url = URL(string: "https://player.gliacloud.com/in-app-browser/\(self.slotKey)") else { return }
@@ -64,7 +141,7 @@ class GliaPlayerUIViewController: UIViewController, WKNavigationDelegate, WKUIDe
       }
     
     // Implement the WKNavigationDelegate method.
-    private func webView(
+    internal func webView(
           _ webView: WKWebView,
           decidePolicyFor navigationAction: WKNavigationAction,
           decisionHandler: @escaping (WKNavigationActionPolicy) -> Void)
@@ -80,53 +157,6 @@ class GliaPlayerUIViewController: UIViewController, WKNavigationDelegate, WKUIDe
 
         decisionHandler(.allow)
       }
-    
-    // Add this method inside your GliaPlayer class
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        
-        let jsCode = """
-        document.documentElement.style.backgroundColor = 'black';
-        document.body.style.margin = 'auto';
-        document.body.style.height = window.innerHeight + 'px';
-        document.body.style.display = 'flex';
-        document.body.style.justifyContent = 'center';
-        document.body.style.alignItems = 'center';
-        
-        const div = document.createElement('div');
-        div.style.cssText = 'position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.8);color:white;padding:10px;border-radius:5px;z-index:10000;';
-        // document.body.appendChild(div);
-
-        const container = document.querySelector('.gliaplayer-container');
-        
-        if (container) {
-            container.style.transformOrigin = 'center center';
-            
-            const handleResize = () => {
-                const winW = window.innerWidth;
-                const winH = window.innerHeight;
-                const conW = container.offsetWidth;
-                const conH = container.offsetHeight;
-                var percentage = 100;
-                
-                if (winW > winH) {
-                    var newWidth = winH * conW / conH;
-                    if (newWidth < winW) {
-                        div.innerHTML = 'UUU';
-                        percentage = (newWidth / winW) * 100;
-                    }
-                }
-                document.body.style.width = `${percentage.toFixed(0)}%`;
-            };
-            
-            const observer = new ResizeObserver(() => handleResize());
-            observer.observe(container);
-            window.addEventListener('resize', handleResize);
-            handleResize();
-        }
-        """
-        
-       // webView.evaluateJavaScript(jsCode, completionHandler: nil)
-    }
     
     func didHandleClickBehavior(
           currentURL: URL,
