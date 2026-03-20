@@ -21,7 +21,14 @@ class GliaPlayerUIViewController: UIViewController, WKNavigationDelegate, WKUIDe
     
     deinit {
         NotificationCenter.default.removeObserver(self)
-        webView?.configuration.userContentController.removeScriptMessageHandler(forName: "audioObserver")
+    }
+    
+    override func willMove(toParent parent: UIViewController?) {
+        super.willMove(toParent: parent)
+        if parent == nil {
+            // This runs when the view is being removed from the hierarchy
+            webView?.configuration.userContentController.removeScriptMessageHandler(forName: "audioObserver")
+        }
     }
     
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
@@ -106,7 +113,7 @@ class GliaPlayerUIViewController: UIViewController, WKNavigationDelegate, WKUIDe
 
         webView = WKWebView(frame: view.bounds, configuration: webViewConfiguration)
         
-        // The WebView resizes with the screen (e.g. rotation)
+        // Ｔhe WebView resizes with the screen (e.g. rotation)
         webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         
         view.addSubview(webView)
@@ -114,7 +121,7 @@ class GliaPlayerUIViewController: UIViewController, WKNavigationDelegate, WKUIDe
         MobileAds.shared.register(webView)
         // Set the WKUIDelegate on your WKWebView instance.
         webView.uiDelegate = self;
-        // Set the WKNavigationDelegate on your WKWebView instance.
+        // 2. Set the WKNavigationDelegate on your WKWebView instance.
         webView.navigationDelegate = self
          
         guard let url = URL(string: "https://player.gliacloud.com/in-app-browser/\(self.slotKey)") else { return }
