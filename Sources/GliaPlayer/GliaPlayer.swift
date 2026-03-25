@@ -42,14 +42,7 @@ class GliaPlayerUIViewController: UIViewController, WKNavigationDelegate, WKUIDe
                     } catch {
                         print("Can't start AVAudioSession: : \(error.localizedDescription)")
                     }
-                } else if state == "unmuted" {
-                    do {
-                        try audioSession.setCategory(.playback)
-                        try audioSession.setActive(true)
-                    } catch {
-                        print("Can't start AVAudioSession: \(error.localizedDescription)")
-                    }
-                }
+                } 
             }
         }
     
@@ -64,13 +57,13 @@ class GliaPlayerUIViewController: UIViewController, WKNavigationDelegate, WKUIDe
     }
 
     @objc func handleAppBecomeActive() {
-        let audioSession = AVAudioSession.sharedInstance()
-        do {
-            try audioSession.setCategory(.playback)
-            try audioSession.setActive(true)
-        } catch {
-            print("Can't start AVAudioSession: \(error.localizedDescription)")
-        }
+        // let audioSession = AVAudioSession.sharedInstance()
+        // do {
+        //     try audioSession.setCategory(.playback)
+        //     try audioSession.setActive(true)
+        // } catch {
+        //     print("Can't start AVAudioSession: \(error.localizedDescription)")
+        // }
     }
     
     override func viewDidLoad() {
